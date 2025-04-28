@@ -2,13 +2,15 @@
 #include <SFML/Graphics.hpp>
 #include <string>
 
-Word::Word(const std::string &str, const sf::Font &font, int char_size, const sf::Color &color, float speed)
+Word::Word(const std::string& str, const sf::Font& font, unsigned int char_size, const sf::Color& color, float speed) : text{font, str, char_size}
+{
+	text.setFillColor(color);
+	this->speed = speed;
+}
+
+void Word::setText(std::string str)
 {
 	text.setString(str);
-	text.setFont(font);
-	text.setFillColor(color);
-	text.setCharacterSize(char_size);
-	this->speed = speed;
 }
 
 sf::Text Word::getText() const
@@ -23,13 +25,13 @@ sf::Vector2f Word::getPosition() const
 
 void Word::setPosition(float x, float y)
 {
-	text.setPosition(x, y);
+	text.setPosition({ x, y });
 }
 
 void Word::moveRight()
 {
 	sf::Vector2f pos = text.getPosition();
-	text.setPosition(pos.x + speed, pos.y);
+	text.setPosition({ pos.x + speed, pos.y });
 }
 
 std::string Word::getString() const
@@ -39,7 +41,7 @@ std::string Word::getString() const
 
 sf::Font Word::getFont() const
 {
-	return *text.getFont();
+	return text.getFont();
 }
 
 void Word::setFont(sf::Font font)
@@ -77,7 +79,22 @@ void Word::setColor(sf::Color color)
 	text.setFillColor(color);
 }
 
-bool Word::operator==(Word const& word)
+bool Word::operator==(const Word & word) const
 {
 	return (text.getString() == word.getString());
+}
+
+Word Word::operator+=(char c)
+{
+	text.setString(text.getString() + c);
+	return *this;
+}
+
+Word Word::operator--(int)
+{
+	std::string str = text.getString();
+	if (str.size() != 0)
+		str.erase(str.size() - 1);
+	text.setString(str);
+	return *this;
 }

@@ -8,10 +8,11 @@
 class Word 
 {
 	sf::Text text;
-	float speed;
+	float speed = 0.f;
 public:
-	Word(const std::string &str, const sf::Font &font, int char_size, const sf::Color &color, float speed);
+	Word(const std::string& str, const sf::Font& font, unsigned int char_size, const sf::Color& color, float speed);
 
+	void setText(std::string str);
 	sf::Text getText() const;
 
 	sf::Vector2f getPosition() const;
@@ -32,7 +33,9 @@ public:
 	sf::Color getColor() const;
 	void setColor(sf::Color color);
 
-	bool operator==(Word const& word);
+	bool operator==(const Word & word) const;
+	Word operator+=(char c);
+	Word operator--(int);
 };
 
 #endif 
