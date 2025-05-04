@@ -69,6 +69,11 @@ void Word::setSpeed(float speed)
 	this->speed = speed;
 }
 
+void Word::accelerate(float acc)
+{
+	this->speed += acc;
+}
+
 sf::Color Word::getColor() const
 {
 	return text.getFillColor();

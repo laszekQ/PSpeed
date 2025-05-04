@@ -1,4 +1,3 @@
-#pragma once
 #ifndef WORD_H
 #define WORD_H
 
@@ -29,6 +28,7 @@ public:
 
 	float getSpeed() const;
 	void setSpeed(float speed);
+	void accelerate(float acc);
 
 	sf::Color getColor() const;
 	void setColor(sf::Color color);
