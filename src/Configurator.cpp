@@ -11,7 +11,7 @@ using settings_map = std::unordered_map<std::string, std::string>;
 
 Configurator::Configurator()
 {
-	config_file_path = "settings.cfg";
+	config_file_path = "../assets/settings.cfg";
 }
 
 Configurator::Configurator(std::string config_file_path)
