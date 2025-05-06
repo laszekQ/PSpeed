@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include "Word.h"
 #include "Configurator.h"
+#include "Util.h"
 #include <string>
 #include <unordered_map>
 #include <ctime>
@@ -12,7 +13,7 @@
 
 #include <iostream>
 
-using settings_map_ptr = std::shared_ptr<std::unordered_map<std::string, std::string>>;
+using settings_map = std::unordered_map<std::string, std::string>;
 
 enum STATE {
     PLAY, PAUSE, DEFEAT, START
@@ -64,7 +65,7 @@ void performLogic(
 
             if (**p == *input_word)
             {
-                game_info.score += (**p).getString().size();
+                game_info.score += (**p).getString().size() * ((**p).getSpeed() / 10);
                 p = words.erase(p);
                 erased_any = true;
             }
@@ -78,7 +79,7 @@ void performLogic(
         if (erased_any)
         {
             input_word->setText("");
-            int max_n = std::stoi(config.getConfiguration()["words_added_per_erase_maximum"]);
+            int max_n = std::stoi((*config.getConfiguration())["words_added_per_erase_maximum"]);
             int n = rand() % max_n + 1 + k_missed;
             for (int i = 0; i < n; i++)
             {
@@ -88,7 +89,7 @@ void performLogic(
             }
 
             for (auto& word : words)
-                word->accelerate(rand() % 10 / 50);
+                word->accelerate(std::stof((*config.getConfiguration())["speed_multiplier"]));
 
             k_missed = 0;
         }
@@ -108,15 +109,16 @@ int main()
     std::srand(std::time(NULL));
     Configurator config("settings.cfg");
     config.setConfiguration();
+    std::unique_ptr<settings_map> settings = std::make_unique<settings_map>(*config.getConfiguration());
 
-    const int WIDTH = std::stoi(config.getConfiguration()["window_width"]);
-    const int HEIGHT = std::stoi(config.getConfiguration()["window_height"]);
+    const unsigned int WIDTH = std::stoi((*settings)["window_width"]);
+    const unsigned int HEIGHT = std::stoi((*settings)["window_height"]);
 
     sf::RenderWindow window(sf::VideoMode({WIDTH, HEIGHT}), "PSpeed");
     gameinfo game_info(0, START);
 
     sf::Font def_font;
-    std::string def_font_path = config.getConfiguration()["fonts_path"] + config.getConfiguration()["default_words_font"];
+    std::string def_font_path = (*settings)["fonts_path"] + (*settings)["default_words_font"];
     if (!def_font.openFromFile(def_font_path))
         return -1;
 
@@ -130,7 +132,7 @@ int main()
     score_word.setPosition(WIDTH / 10, 5.5 * HEIGHT / 6);
 
     //starting words
-    int words_count = std::stoi(config.getConfiguration()["starting_words_count"]);
+    int words_count = std::stoi((*settings)["starting_words_count"]);
     for (int i = 0; i < words_count; i++)
     {
         words.push_back(config.genWord());
@@ -147,14 +149,33 @@ int main()
         std::ref(words_mutex));
 
     //START and PLAY
-    sf::Text greeting_text(def_font, "Press Enter to start", 32);
-    greeting_text.setPosition({ (float)window.getSize().x / 2, (float)window.getSize().y / 2});
+    sf::Text greeting_text(def_font, "Press Enter to play", 32);
+    greeting_text.setOrigin(greeting_text.getLocalBounds().getCenter());
+    greeting_text.setPosition({ window.getSize().x / 2.f, window.getSize().y / 2.f });
+    
     sf::Text defeat_text(def_font, "DEFEAT", 64);
-    defeat_text.setPosition({ (float)window.getSize().x / 2, (float)window.getSize().y / 2 });
+    defeat_text.setOrigin(defeat_text.getLocalBounds().getCenter());
+    defeat_text.setPosition({ window.getSize().x / 2.f, window.getSize().y / 2.f });
     defeat_text.setFillColor(sf::Color::Red);
 
     //PAUSE
+    sf::Text best_scores_text(def_font, "Best scores:", 24);
+    best_scores_text.setPosition({5.f, 5.f});
+    best_scores_text.setFillColor(sf::Color::Yellow);
 
+    std::vector<util::record> records = util::readScore();
+    std::vector<sf::Text> scores;
+    scores.reserve(records.size());
+    for(int i = 0; i < records.size(); i++)
+    {
+        sf::Text txt(def_font);
+        txt.setString(records[i].date + '\t' + std::to_string(records[i].score));
+        txt.setFont(def_font);
+        txt.setCharacterSize(24);
+        txt.setFillColor(sf::Color::White);
+        txt.setPosition({5.f, 48.f + i * 24.f});
+        scores.push_back(txt);
+    }
 
     while (window.isOpen())
     {
@@ -162,6 +183,7 @@ int main()
         {
             if (event->is<sf::Event::Closed>())
             {
+                util::writeScore(game_info.score);
                 game_info.running = false;
                 compute_thread.request_stop();
                 compute_thread.join();
@@ -173,9 +195,9 @@ int main()
                 {
                 case START:
                     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter))
-                    {
                         game_info.state = PLAY;
-                    } 
+                    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Tab))
+                        game_info.state = PAUSE;
                     break;
 
                 case PAUSE:
@@ -190,23 +212,23 @@ int main()
                 case PLAY:
                     if (const auto* textEntered = event->getIf<sf::Event::TextEntered>())
                     {
-                    if (textEntered->unicode > 40 && textEntered->unicode < 123)
-                        *input_word += (char)textEntered->unicode;
-                    else if (textEntered->unicode == 8)
-                        (*input_word)--;
+                        if (textEntered->unicode > 40 && textEntered->unicode < 123)
+                            *input_word += (char)textEntered->unicode;
+                        else if (textEntered->unicode == 8)
+                            (*input_word)--;
                     }
                     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Tab))
-                    game_info.state = PAUSE;
+                        game_info.state = PAUSE;
 
-                    score_word.setText(std::to_string(game_info.score));
-
+                    words_mutex.lock();
                     for (auto& word : words)
                     {
-                    if (word->getString().find(input_word->getString()) != std::string::npos)
-                    {
-                        input_word_mask.setText(input_word->getString());
+                        if (word->getString().find(input_word->getString()) != std::string::npos)
+                        {
+                            input_word_mask.setText(input_word->getString());
+                        }
                     }
-                    }
+                    words_mutex.unlock();
                     break;
 
                 case DEFEAT:
@@ -231,22 +253,40 @@ int main()
             }
         }
 
+        
         window.clear();
 
-        words_mutex.lock();
-        for (auto& word : words)
-            window.draw(word->getText());
-        words_mutex.unlock();
+        switch(game_info.state)
+        {
+            case START:
+                window.draw(greeting_text);
+            break;
 
-        if (game_info.state == START)
-            window.draw(greeting_text);
-        if (game_info.state == DEFEAT)
-            window.draw(defeat_text);
+            case PLAY:
+                score_word.setText(std::to_string(game_info.score));
+                if(input_word->getString() == "")
+                        input_word_mask.setText("");
 
-        window.draw(input_word->getText());
-        window.draw(input_word_mask.getText());
-        window.draw(score_word.getText());
+                words_mutex.lock();
+                for (auto& word : words)
+                    window.draw(word->getText());
+                words_mutex.unlock();
 
+                window.draw(input_word->getText());
+                window.draw(input_word_mask.getText());
+                window.draw(score_word.getText());
+            break;
+
+            case DEFEAT:
+                window.draw(defeat_text);
+            break;
+
+            case PAUSE:
+                window.draw(best_scores_text);
+                for(auto &t: scores)
+                    window.draw(t);
+            break;
+        }
         window.display();
     }
     return 0;

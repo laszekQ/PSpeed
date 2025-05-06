@@ -375,3 +375,4 @@ CMakeCache.txt
 *.cmake
 _deps/
 CMakeFiles/
+requirements.txt

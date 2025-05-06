@@ -22,11 +22,10 @@ class Configurator
 	Configurator();
 	Configurator(std::string config_file_path);
 	bool setConfiguration();
-	settings_map getConfiguration();
+	settings_map * getConfiguration();
 	void changeSetting(std::string key, std::string value);
 	std::vector<std::string> getWords();
 	std::shared_ptr<Word> genWord();
-	static sf::Color genColor();
 	std::pair<float, float> genPos(int width, int height);
 };
 

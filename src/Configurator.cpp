@@ -1,5 +1,6 @@
 #include "Configurator.h"
 #include "Word.h"
+#include "Util.h"
 #include <fstream>
 #include <string>
 #include <map>
@@ -54,9 +55,9 @@ bool Configurator::setConfiguration()
 	return true;
 }
 
-settings_map Configurator::getConfiguration()
+settings_map * Configurator::getConfiguration()
 {
-	return settings;
+	return &settings;
 }
 
 void Configurator::changeSetting(std::string key, std::string value)
@@ -82,7 +83,7 @@ std::shared_ptr<Word> Configurator::genWord()
 	
 	sf::Color color;
 	if (settings["random_words_colors"] == "1")
-		color = Configurator::genColor();
+		color = util::genColor();
 	else
 	{
 		int t_clr = std::stoi(settings["default_words_color"]);
@@ -122,15 +123,6 @@ std::vector<std::string> Configurator::getWords()
 	}
 	catch (std::string exc) { words.push_back(exc); }
 	return words;
-}
-
-sf::Color Configurator::genColor()
-{
-	int r = std::rand() % 256,
-		g = std::rand() % 256,
-		b = std::rand() % 256;
-
-	return sf::Color(r, g, b);
 }
 
 std::pair<float, float> Configurator::genPos(int width, int height)

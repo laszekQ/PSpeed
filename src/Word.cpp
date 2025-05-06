@@ -71,7 +71,7 @@ void Word::setSpeed(float speed)
 
 void Word::accelerate(float acc)
 {
-	this->speed += acc;
+	this->speed *= acc;
 }
 
 sf::Color Word::getColor() const
