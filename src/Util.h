@@ -2,6 +2,8 @@
 #define UTIL_H
 
 #include <SFML/Graphics.hpp>
+#include "Word.h"
+#include "Configurator.h"
 #include <fstream>
 #include <string>
 #include <vector>
@@ -87,6 +89,88 @@ namespace util{
         }catch(const std::exception &e) {throw e;}
 
         return records;
+    }
+
+    inline std::vector<sf::Text> getScores(sf::Font &font)
+    {
+        std::vector<util::record> records = util::readScore();
+        std::vector<sf::Text> scores;
+        scores.reserve(records.size());
+        for(int i = 0; i < records.size(); i++)
+        {
+            sf::Text txt(font);
+            txt.setString(records[i].date + '\t' + std::to_string(records[i].score));
+            txt.setFont(font);
+            txt.setCharacterSize(24);
+            txt.setFillColor(sf::Color::White);
+            txt.setPosition({5.f, 48.f + i * 24.f});
+            scores.push_back(txt);
+        }
+        return scores;
+    }
+
+    inline void saveGame(std::string file, std::vector< std::shared_ptr<Word> > &words, std::shared_ptr<Word> &input_word, int score)
+    {
+        try{
+            std::ofstream fout(file);
+            
+            std::string s = input_word->getString() == "" ? "_" : input_word->getString();
+
+            fout << s << ' ' << score << ' ' << words.size() << '\n';
+
+            for(auto & word : words)
+            {
+                fout << word->getString() << ' ';
+                fout << word->getColor().toInteger() << ' ' << word->getSize() << ' ';
+                fout << word->getPosition().x << ' ' << word->getPosition().y << ' ' << word->getSpeed() << '\n';
+            }
+
+            fout.close();
+        }catch(const std::exception &e) {throw e;}
+    }
+
+    inline void loadGame(std::string file, Configurator &config, std::vector< std::shared_ptr<Word> > &words, std::shared_ptr<Word> &input_word, int &score)
+    {
+        try{
+            std::ifstream fin(file);
+
+            std::string str = "";
+            fin >> str;
+            if(str == "_")
+                str = "";
+            input_word->setText(str);
+            fin >> score;
+
+            int k = 0;
+            fin >> k;
+
+            words.clear();
+            for(int i = 0; i < k; i++)
+            {
+                std::string s;
+                unsigned int color, char_size;
+                float x, y, speed;
+
+                fin >> s >> color >> char_size >> x >> y >> speed;
+
+                words.push_back(std::make_shared<Word>(s, sf::Font(), char_size, sf::Color(color), speed));
+                words[i]->setPosition(x, y);
+            }
+            fin.close();
+        }catch(const std::exception &e) {throw e;}
+    }
+
+    inline void assignFonts(std::vector< std::shared_ptr<Word> > &words, Configurator &config)
+    {
+        std::vector<sf::Font> fonts = config.getFonts();
+
+        for(auto &word : words)
+        {
+            sf::Font & font = ((*config.getConfiguration())["random_words_fonts"] == "1") ?
+						fonts[rand() % fonts.size()]
+						: fonts[0];
+            word->setFont(font);
+        }
     }
 
     inline sf::Color genColor()

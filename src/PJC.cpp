@@ -2,6 +2,7 @@
 #include "Word.h"
 #include "Configurator.h"
 #include "Util.h"
+#include "Button.h"
 #include <string>
 #include <unordered_map>
 #include <ctime>
@@ -84,7 +85,7 @@ void performLogic(
             for (int i = 0; i < n; i++)
             {
                 words.push_back(config.genWord());
-                std::pair<int, int> pos = config.genPos(900, 500);
+                std::pair<float, float> pos = config.genPos(900, 500);
                 words[words.size() - 1]->setPosition(pos.first, pos.second);
             }
 
@@ -94,8 +95,10 @@ void performLogic(
             k_missed = 0;
         }
         else if (k_missed > 3 || words.size() == 0)
+        {
             game_info.state = DEFEAT;
-
+            util::writeScore(game_info.score);
+        }
         for (auto& word : words)
         {
             word->moveRight();
@@ -136,10 +139,9 @@ int main()
     for (int i = 0; i < words_count; i++)
     {
         words.push_back(config.genWord());
-        std::pair<int, int> pos = config.genPos(window.getSize().x, window.getSize().y);
-        words[words.size() - 1]->setPosition(pos.first, pos.second);
+        std::pair<float, float> pos = config.genPos(window.getSize().x, window.getSize().y);
+        words[i]->setPosition(pos.first, pos.second);
     }
-
 
     std::jthread compute_thread(performLogic,
         std::ref(words),
@@ -153,29 +155,29 @@ int main()
     greeting_text.setOrigin(greeting_text.getLocalBounds().getCenter());
     greeting_text.setPosition({ window.getSize().x / 2.f, window.getSize().y / 2.f });
     
+    //DEFEAT
     sf::Text defeat_text(def_font, "DEFEAT", 64);
     defeat_text.setOrigin(defeat_text.getLocalBounds().getCenter());
     defeat_text.setPosition({ window.getSize().x / 2.f, window.getSize().y / 2.f });
     defeat_text.setFillColor(sf::Color::Red);
+
+    sf::Text score_write_txt(def_font, "To write your score press S", 32);
+    score_write_txt.setOrigin(score_write_txt.getLocalBounds().getCenter());
+    score_write_txt.setPosition({ window.getSize().x / 2.f, window.getSize().y / 2.f  + 80});
+    score_write_txt.setFillColor(sf::Color::White);
+    bool score_write = false;
 
     //PAUSE
     sf::Text best_scores_text(def_font, "Best scores:", 24);
     best_scores_text.setPosition({5.f, 5.f});
     best_scores_text.setFillColor(sf::Color::Yellow);
 
-    std::vector<util::record> records = util::readScore();
-    std::vector<sf::Text> scores;
-    scores.reserve(records.size());
-    for(int i = 0; i < records.size(); i++)
-    {
-        sf::Text txt(def_font);
-        txt.setString(records[i].date + '\t' + std::to_string(records[i].score));
-        txt.setFont(def_font);
-        txt.setCharacterSize(24);
-        txt.setFillColor(sf::Color::White);
-        txt.setPosition({5.f, 48.f + i * 24.f});
-        scores.push_back(txt);
-    }
+    Button save_button(WIDTH - 100.f, 175.f, 100.f, 50.f, "Save", def_font, 18, sf::Color(0, 0, 0), sf::Color(255, 255, 255));
+    Button open_button(WIDTH - 250.f, 175.f, 100.f, 50.f, "Open", def_font, 18, sf::Color(0, 0, 0), sf::Color(255, 255, 255));
+    Word filename_so("", def_font, 24, sf::Color(255, 255, 255), 0.f);
+    filename_so.setPosition(WIDTH - 250.f, 120.f);
+
+    std::vector<sf::Text> scores = util::getScores(def_font);
 
     while (window.isOpen())
     {
@@ -198,16 +200,31 @@ int main()
                         game_info.state = PLAY;
                     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Tab))
                         game_info.state = PAUSE;
-                    break;
+                break;
 
                 case PAUSE:
                     if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter))
                         game_info.state = PLAY;
-                    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape))
+                    else if (const auto* textEntered = event->getIf<sf::Event::TextEntered>())
                     {
-                    //TODO: SETTINGS + SAVE/LOAD
+                        if (textEntered->unicode > 40 && textEntered->unicode < 123)
+                            filename_so += (char)textEntered->unicode;
+                        else if (textEntered->unicode == 8)
+                            filename_so--;
                     }
-                    break;
+                    else if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
+                    {
+                        words_mutex.lock();
+                        if(save_button.clicked(window))
+                            util::saveGame(filename_so.getString(), words, input_word, game_info.score);
+                        else if(open_button.clicked(window))
+                        {
+                            util::loadGame(filename_so.getString(), config, words, input_word, game_info.score);
+                            util::assignFonts(words, config);
+                        }
+                        words_mutex.unlock();
+                    }
+                break;
 
                 case PLAY:
                     if (const auto* textEntered = event->getIf<sf::Event::TextEntered>())
@@ -229,7 +246,7 @@ int main()
                         }
                     }
                     words_mutex.unlock();
-                    break;
+                break;
 
                 case DEFEAT:
                     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter)) // restarting game
@@ -248,14 +265,20 @@ int main()
                         }
                         words_mutex.unlock();
                     }
-                    break;
+                    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) && !score_write)
+                    {
+                        scores = util::getScores(def_font);
+                        score_write = true;
+                    }
+                    else if(const auto* e = event->getIf<sf::Event::KeyReleased>())
+                        if(e->code == sf::Keyboard::Key::S)
+                            score_write = false;
+                break;
                 }
             }
         }
-
         
         window.clear();
-
         switch(game_info.state)
         {
             case START:
@@ -269,7 +292,7 @@ int main()
 
                 words_mutex.lock();
                 for (auto& word : words)
-                    window.draw(word->getText());
+                    window.draw(*word);
                 words_mutex.unlock();
 
                 window.draw(input_word->getText());
@@ -279,12 +302,17 @@ int main()
 
             case DEFEAT:
                 window.draw(defeat_text);
+                window.draw(score_write_txt);
             break;
 
             case PAUSE:
                 window.draw(best_scores_text);
                 for(auto &t: scores)
                     window.draw(t);
+                
+                window.draw(save_button);
+                window.draw(open_button);
+                window.draw(filename_so);
             break;
         }
         window.display();

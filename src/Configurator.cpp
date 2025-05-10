@@ -125,6 +125,11 @@ std::vector<std::string> Configurator::getWords()
 	return words;
 }
 
+std::vector<sf::Font> Configurator::getFonts()
+{
+	return fonts;
+}
+
 std::pair<float, float> Configurator::genPos(int width, int height)
 {
 	float x = rand() % width * std::stof(settings["starting_words_xpos_maximum"]);

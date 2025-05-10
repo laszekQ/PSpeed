@@ -1,6 +1,8 @@
 #include <SFML/Graphics.hpp>
 #include "Button.h"
 
+#include <iostream>
+
 Button::Button(float x, float y, sf::Text text, sf::RectangleShape rect) : text{text}
 {
     this->x = x;
@@ -49,12 +51,7 @@ sf::RectangleShape Button::getRect()
 
 bool Button::clicked(sf::RenderWindow &window)
 {
-    if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
-    {
-        sf::Vector2f mousePos = (sf::Vector2f)sf::Mouse::getPosition();
-        sf::FloatRect button_bounds = rect.getGlobalBounds();
-
-        return button_bounds.contains(mousePos);
-    }
-    return false;
+    sf::Vector2f mousePos = (sf::Vector2f)sf::Mouse::getPosition(window);
+    sf::FloatRect button_bounds = rect.getGlobalBounds();
+    return button_bounds.contains(mousePos);
 }

@@ -103,3 +103,8 @@ Word Word::operator--(int)
 	text.setString(str);
 	return *this;
 }
+
+void Word::draw(sf::RenderTarget& target, sf::RenderStates states) const
+{
+	target.draw(text);
+}

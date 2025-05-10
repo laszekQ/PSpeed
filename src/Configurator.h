@@ -26,6 +26,7 @@ class Configurator
 	void changeSetting(std::string key, std::string value);
 	std::vector<std::string> getWords();
 	std::shared_ptr<Word> genWord();
+	std::vector<sf::Font> getFonts();
 	std::pair<float, float> genPos(int width, int height);
 };
 

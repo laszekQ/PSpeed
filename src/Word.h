@@ -4,10 +4,13 @@
 #include <SFML/Graphics.hpp>
 #include <string>
 
-class Word 
+class Word : public sf::Drawable
 {
 	sf::Text text;
 	float speed = 0.f;
+	std::string fontpath;
+
+	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 public:
 	Word(const std::string& str, const sf::Font& font, unsigned int char_size, const sf::Color& color, float speed);
 
