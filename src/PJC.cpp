@@ -161,13 +161,18 @@ int main()
     defeat_text.setPosition({ window.getSize().x / 2.f, window.getSize().y / 2.f });
     defeat_text.setFillColor(sf::Color::Red);
 
-    sf::Text score_write_txt(def_font, "To write your score press S", 32);
+    sf::Text score_write_txt(def_font, "Press S to save your score", 32);
     score_write_txt.setOrigin(score_write_txt.getLocalBounds().getCenter());
-    score_write_txt.setPosition({ window.getSize().x / 2.f, window.getSize().y / 2.f  + 80});
+    score_write_txt.setPosition({ window.getSize().x / 2.f, window.getSize().y / 2.f  + 65});
     score_write_txt.setFillColor(sf::Color::White);
     bool score_write = false;
 
     //PAUSE
+    sf::Text action_text(def_font, "", 18);
+    action_text.setStyle(sf::Text::Italic);
+    action_text.setFillColor(sf::Color::White);
+    action_text.setPosition({5.f, HEIGHT - 25.f});
+
     sf::Text best_scores_text(def_font, "Best scores:", 24);
     best_scores_text.setPosition({5.f, 5.f});
     best_scores_text.setFillColor(sf::Color::Yellow);
@@ -185,7 +190,8 @@ int main()
         {
             if (event->is<sf::Event::Closed>())
             {
-                util::writeScore(game_info.score);
+                if((*settings)["save_score_on_exit"] == "1")
+                    util::writeScore(game_info.score);
                 game_info.running = false;
                 compute_thread.request_stop();
                 compute_thread.join();
@@ -204,7 +210,10 @@ int main()
 
                 case PAUSE:
                     if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter))
+                    {
                         game_info.state = PLAY;
+                        action_text.setString("");
+                    }
                     else if (const auto* textEntered = event->getIf<sf::Event::TextEntered>())
                     {
                         if (textEntered->unicode > 40 && textEntered->unicode < 123)
@@ -216,11 +225,18 @@ int main()
                     {
                         words_mutex.lock();
                         if(save_button.clicked(window))
-                            util::saveGame(filename_so.getString(), words, input_word, game_info.score);
+                        {
+                            if(util::saveGame(filename_so.getString(), words, input_word, game_info.score))
+                                action_text.setString("Saved file!");
+                            else
+                                action_text.setString("Failed to save file.");
+                        }
                         else if(open_button.clicked(window))
                         {
-                            util::loadGame(filename_so.getString(), config, words, input_word, game_info.score);
-                            util::assignFonts(words, config);
+                            if(util::loadGame(filename_so.getString(), config, words, input_word, game_info.score))
+                                action_text.setString("Opened file!");
+                            else
+                                action_text.setString("Failed to open file.");
                         }
                         words_mutex.unlock();
                     }
@@ -265,8 +281,11 @@ int main()
                         }
                         words_mutex.unlock();
                     }
+                    else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Tab))
+                        game_info.state = PAUSE;
                     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) && !score_write)
                     {
+                        util::writeScore(game_info.score);
                         scores = util::getScores(def_font);
                         score_write = true;
                     }
@@ -313,6 +332,7 @@ int main()
                 window.draw(save_button);
                 window.draw(open_button);
                 window.draw(filename_so);
+                window.draw(action_text);
             break;
         }
         window.display();

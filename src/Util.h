@@ -109,7 +109,7 @@ namespace util{
         return scores;
     }
 
-    inline void saveGame(std::string file, std::vector< std::shared_ptr<Word> > &words, std::shared_ptr<Word> &input_word, int score)
+    inline bool saveGame(std::string file, std::vector< std::shared_ptr<Word> > &words, std::shared_ptr<Word> &input_word, int score)
     {
         try{
             std::ofstream fout(file);
@@ -126,10 +126,11 @@ namespace util{
             }
 
             fout.close();
-        }catch(const std::exception &e) {throw e;}
+        }catch(const std::exception &e) {return false;}
+        return true;
     }
 
-    inline void loadGame(std::string file, Configurator &config, std::vector< std::shared_ptr<Word> > &words, std::shared_ptr<Word> &input_word, int &score)
+    inline bool loadGame(std::string file, Configurator &config, std::vector< std::shared_ptr<Word> > &words, std::shared_ptr<Word> &input_word, int &score)
     {
         try{
             std::ifstream fin(file);
@@ -150,27 +151,16 @@ namespace util{
                 std::string s;
                 unsigned int color, char_size;
                 float x, y, speed;
+                sf::Font& font = config.getFont();
 
                 fin >> s >> color >> char_size >> x >> y >> speed;
 
-                words.push_back(std::make_shared<Word>(s, sf::Font(), char_size, sf::Color(color), speed));
+                words.push_back(std::make_shared<Word>(s, font, char_size, sf::Color(color), speed));
                 words[i]->setPosition(x, y);
             }
             fin.close();
-        }catch(const std::exception &e) {throw e;}
-    }
-
-    inline void assignFonts(std::vector< std::shared_ptr<Word> > &words, Configurator &config)
-    {
-        std::vector<sf::Font> fonts = config.getFonts();
-
-        for(auto &word : words)
-        {
-            sf::Font & font = ((*config.getConfiguration())["random_words_fonts"] == "1") ?
-						fonts[rand() % fonts.size()]
-						: fonts[0];
-            word->setFont(font);
-        }
+        }catch(const std::exception &e) {return false;}
+        return true;
     }
 
     inline sf::Color genColor()

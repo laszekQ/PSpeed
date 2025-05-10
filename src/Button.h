@@ -14,7 +14,7 @@ class Button : public sf::Drawable
 
     public:
     Button(float x, float y, sf::Text text, sf::RectangleShape rect);
-    Button(float x, float y, float width, float height, std::string str, sf::Font font, unsigned int char_size, sf::Color fg_color, sf::Color bg_color);
+    Button(float x, float y, float width, float height, std::string str, sf::Font &font, unsigned int char_size, sf::Color fg_color, sf::Color bg_color);
     sf::Text getText();
     sf::RectangleShape getRect();
     bool clicked(sf::RenderWindow &window);

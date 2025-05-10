@@ -71,9 +71,7 @@ std::shared_ptr<Word> Configurator::genWord()
 	int range = words_from_file.size() * std::stod(settings["dispersion"]);
 	std::string str = words_from_file[rand() % range];
 	
-	sf::Font & font = (settings["random_words_fonts"] == "1") ?
-						fonts[rand() % fonts.size()]
-						: fonts[0]; //TODO: make default_font always be first in the vector
+	sf::Font & font = getFont(); //TODO: make default_font always be first in the vector
 
 	unsigned int char_size = 18;
 	if (settings["random_word_char_size"] == "1")
@@ -125,9 +123,12 @@ std::vector<std::string> Configurator::getWords()
 	return words;
 }
 
-std::vector<sf::Font> Configurator::getFonts()
+sf::Font& Configurator::getFont()
 {
-	return fonts;
+	sf::Font & font = (settings["random_words_fonts"] == "1") ?
+						fonts[rand() % fonts.size()]
+						: fonts[0];
+	return font;
 }
 
 std::pair<float, float> Configurator::genPos(int width, int height)

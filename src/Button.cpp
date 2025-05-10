@@ -17,7 +17,7 @@ Button::Button(float x, float y, sf::Text text, sf::RectangleShape rect) : text{
     this->text.setPosition({x, y});
 }
 
-Button::Button(float x, float y, float width, float height, std::string str, sf::Font font, unsigned int char_size, sf::Color fg_color, sf::Color bg_color) : text{font, str, char_size}
+Button::Button(float x, float y, float width, float height, std::string str, sf::Font &font, unsigned int char_size, sf::Color fg_color, sf::Color bg_color) : text{font, str, char_size}
 {
     this->x = x;
     this->y = y;
