@@ -44,6 +44,9 @@ void performLogic(
 {
     std::string input = "";
     int k_missed = 0;
+    settings_map * settings = config.getConfiguration();
+    const float degrees = std::stof((*settings)["degrees"]);
+    int sleeptime = std::stoi((*settings)["sleeptime"]);
 
     while (game_info.running)
     {
@@ -68,7 +71,9 @@ void performLogic(
 
             if (**p == *input_word)
             {
-                game_info.score += (**p).getString().size() * ((**p).getSpeed() / 10);
+                game_info.score +=  ((**p).getString().size() * ((**p).getSpeed() / 10) +
+                                    (std::stoi((*settings)["word_rotation"]) * std::stof((*settings)["degrees"])))
+                                    * (150.f / sleeptime);
                 p = words.erase(p);
                 erased_any = true;
             }
@@ -82,7 +87,7 @@ void performLogic(
         if (erased_any)
         {
             input_word->setText("");
-            int max_n = std::stoi((*config.getConfiguration())["words_added_per_erase_maximum"]);
+            int max_n = std::stoi((*settings)["words_added_per_erase_maximum"]);
             int n = rand() % max_n + 1 + k_missed;
             for (int i = 0; i < n; i++)
             {
@@ -92,7 +97,7 @@ void performLogic(
             }
 
             for (auto& word : words)
-                word->accelerate(std::stof((*config.getConfiguration())["speed_multiplier"]));
+                word->accelerate(std::stof((*settings)["speed_multiplier"]));
 
             k_missed = 0;
         }
@@ -104,8 +109,12 @@ void performLogic(
         for (auto& word : words)
         {
             word->moveRight();
+            if((*settings)["word_rotation"] == "1")
+                word->rotate(15);
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(125));
+
+        sleeptime = std::stoi((*settings)["sleeptime"]);
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleeptime));
     }
 }
 
@@ -285,13 +294,17 @@ int main()
                         else if (isKeyPressed(Key::Up) && g_size)
                         {
                             config.incrementSetting("base_word_char_size", 2);
-                            util::speedUpWords(words, 2);
+                            util::enlargeWords(words, 2);
                         }
                         else if (isKeyPressed(Key::Down) && g_size)
                         {
                             config.incrementSetting("base_word_char_size", 2);
-                            util::speedUpWords(words, -2);
+                            util::enlargeWords(words, -2);
                         }
+                        else if (isKeyPressed(Key::A))
+                            config.incrementSetting("sleeptime", -5);
+                        else if (isKeyPressed(Key::D))
+                            config.incrementSetting("sleeptime", 5);
                         else if (isKeyPressed(Key::C))
                             config.switchSetting("random_words_colors");
                         else if (isKeyPressed(Key::F))
@@ -300,6 +313,8 @@ int main()
                             config.switchSetting("random_word_char_size");
                         else if (isKeyPressed(Key::P))
                             config.switchSetting("random_base_speed");
+                        else if (isKeyPressed(Key::N))
+                            config.switchSetting("word_rotation");
 
                         else shortcut_pressed = false;
                     }

@@ -84,6 +84,11 @@ void Word::sizeChange(int size)
 	text.setCharacterSize(text.getCharacterSize() + size);
 }
 
+void Word::rotate(float angle)
+{
+	text.rotate(sf::degrees(angle));
+}
+
 sf::Color Word::getColor() const
 {
 	return text.getFillColor();

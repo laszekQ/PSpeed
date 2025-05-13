@@ -377,3 +377,5 @@ _deps/
 CMakeFiles/
 requirements.txt
 Makefile
+PSpeed
+*.sv

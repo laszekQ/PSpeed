@@ -43,7 +43,7 @@ class Configurator
 	void incrementSetting(std::string key, T inc)
 	{
 		T value = std::stof(settings[key]) + inc;
-        config.changeSetting("base_speed", value);
+        this->changeSetting(key, value);
 	}
 };
 

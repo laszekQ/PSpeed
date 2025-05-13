@@ -35,6 +35,8 @@ public:
 
 	void sizeChange(int size);
 
+	void rotate(float angle);
+
 	sf::Color getColor() const;
 	void setColor(sf::Color color);
 
