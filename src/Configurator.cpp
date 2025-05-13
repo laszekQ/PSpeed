@@ -60,12 +60,6 @@ settings_map * Configurator::getConfiguration()
 	return &settings;
 }
 
-void Configurator::changeSetting(std::string key, std::string value)
-{
-	settings[key] = value;
-}
-
-
 std::shared_ptr<Word> Configurator::genWord()
 {
 	int range = words_from_file.size() * std::stod(settings["dispersion"]);
@@ -75,7 +69,11 @@ std::shared_ptr<Word> Configurator::genWord()
 
 	unsigned int char_size = 18;
 	if (settings["random_word_char_size"] == "1")
-		char_size = rand() % 53 + 12; // from 12 to 64
+	{
+		int minimum = std::stoi(settings["base_word_char_size"]);
+		int maximum = std::stoi(settings["maximum_word_char_size"]);
+		char_size = rand() % (maximum - minimum + 1) + minimum;
+	}
 	else
 		char_size = std::stoi(settings["base_word_char_size"]);
 	
@@ -93,7 +91,7 @@ std::shared_ptr<Word> Configurator::genWord()
 
 	float speed = 10.0f;
 	if (settings["random_base_speed"] == "1")
-		speed = rand() % 11 + 10; // from 10 to 20
+		speed = rand() % 11 + std::stof(settings["base_speed"]); // from 10 to 20
 	else
 		speed = std::stof(settings["base_speed"]);
 
@@ -104,8 +102,8 @@ std::shared_ptr<Word> Configurator::genWord()
 std::vector<std::string> Configurator::getWords()
 {
 	std::vector<std::string> words;
-	int min_size = std::stoi(settings["minimum_word_size"]);
-	int max_size = std::stoi(settings["maximum_word_size"]);
+	int min_size = std::stoi(settings["minimum_word_length"]);
+	int max_size = std::stoi(settings["maximum_word_length"]);
 
 	try {
 		std::ifstream fin(words_file_path);
@@ -134,6 +132,17 @@ sf::Font& Configurator::getFont()
 std::pair<float, float> Configurator::genPos(int width, int height)
 {
 	float x = rand() % width * std::stof(settings["starting_words_xpos_maximum"]);
-	float y = rand() % height * 0.8;
+	float y = rand() % height * 0.7;
 	return { x , y };
+}
+
+void Configurator::changeSetting(std::string key, std::string value)
+{
+	settings[key] = value;
+}
+
+void Configurator::switchSetting(std::string key)
+{
+	std::string val = (settings[key] == "0" ? "1" : "0");
+    settings[key] = val;
 }

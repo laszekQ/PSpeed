@@ -7,6 +7,8 @@
 #include <SFML/Graphics.hpp>
 #include "Word.h"
 
+#include <iostream>
+
 using settings_map = std::unordered_map<std::string, std::string>;
 
 class Configurator 
@@ -23,11 +25,26 @@ class Configurator
 	Configurator(std::string config_file_path);
 	bool setConfiguration();
 	settings_map * getConfiguration();
-	void changeSetting(std::string key, std::string value);
 	std::vector<std::string> getWords();
 	std::shared_ptr<Word> genWord();
 	sf::Font& getFont();
 	std::pair<float, float> genPos(int width, int height);
+
+	template <typename T> 
+	void changeSetting(std::string key, T value)
+	{
+		std::string s = std::to_string(value);
+		settings.at(key) = s;
+	}
+	void changeSetting(std::string key, std::string value);
+	void switchSetting(std::string key);
+
+	template <typename T>
+	void incrementSetting(std::string key, T inc)
+	{
+		T value = std::stof(settings[key]) + inc;
+        config.changeSetting("base_speed", value);
+	}
 };
 
 #endif

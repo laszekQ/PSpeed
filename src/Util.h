@@ -163,6 +163,18 @@ namespace util{
         return true;
     }
 
+    inline void speedUpWords(std::vector< std::shared_ptr<Word> > &words, float speed)
+    {
+        for(auto &word : words)
+            word->speedChange(speed);
+    }
+    
+    inline void enlargeWords(std::vector< std::shared_ptr<Word> > &words, int size)
+    {
+        for(auto &word : words)
+            word->sizeChange(size);
+    }
+
     inline sf::Color genColor()
     {
         int r = std::rand() % 256,

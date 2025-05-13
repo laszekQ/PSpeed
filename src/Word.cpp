@@ -71,7 +71,17 @@ void Word::setSpeed(float speed)
 
 void Word::accelerate(float acc)
 {
-	this->speed *= acc;
+	speed *= acc;
+}
+
+void Word::speedChange(float speed)
+{
+	this->speed += speed;
+}
+
+void Word::sizeChange(int size)
+{
+	text.setCharacterSize(text.getCharacterSize() + size);
 }
 
 sf::Color Word::getColor() const

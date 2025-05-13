@@ -8,7 +8,6 @@ class Word : public sf::Drawable
 {
 	sf::Text text;
 	float speed = 0.f;
-	std::string fontpath;
 
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 public:
@@ -32,6 +31,9 @@ public:
 	float getSpeed() const;
 	void setSpeed(float speed);
 	void accelerate(float acc);
+	void speedChange(float speed);
+
+	void sizeChange(int size);
 
 	sf::Color getColor() const;
 	void setColor(sf::Color color);

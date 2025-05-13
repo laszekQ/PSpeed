@@ -15,6 +15,8 @@
 #include <iostream>
 
 using settings_map = std::unordered_map<std::string, std::string>;
+using sf::Keyboard::Key;
+using namespace sf::Keyboard;
 
 enum STATE {
     PLAY, PAUSE, DEFEAT, START
@@ -112,12 +114,13 @@ int main()
     std::srand(std::time(NULL));
     Configurator config("settings.cfg");
     config.setConfiguration();
-    std::unique_ptr<settings_map> settings = std::make_unique<settings_map>(*config.getConfiguration());
+    settings_map * settings = config.getConfiguration();
 
     const unsigned int WIDTH = std::stoi((*settings)["window_width"]);
     const unsigned int HEIGHT = std::stoi((*settings)["window_height"]);
 
     sf::RenderWindow window(sf::VideoMode({WIDTH, HEIGHT}), "PSpeed");
+    window.setFramerateLimit(60);
     gameinfo game_info(0, START);
 
     sf::Font def_font;
@@ -127,12 +130,18 @@ int main()
 
     std::vector< std::shared_ptr<Word> > words;
     std::mutex words_mutex;
+    
+    //PLAY
     std::shared_ptr<Word> input_word = std::make_shared<Word>("", def_font, 28, sf::Color::White, 0.f);
     input_word->setPosition(WIDTH / 10, 5 * HEIGHT / 6);
     Word input_word_mask("", def_font, 28, sf::Color::Green, 0.f);
     input_word_mask.setPosition(WIDTH / 10, 5 * HEIGHT / 6);
     Word score_word("", def_font, 18, sf::Color::White, 0.f);
     score_word.setPosition(WIDTH / 10, 5.5 * HEIGHT / 6);
+
+    sf::RectangleShape input_bg({WIDTH, HEIGHT});
+    input_bg.setFillColor(sf::Color(0, 0, 102, 255));
+    input_bg.setPosition({0, 5 * HEIGHT / 6 - 28});
 
     //starting words
     int words_count = std::stoi((*settings)["starting_words_count"]);
@@ -150,7 +159,7 @@ int main()
         std::ref(config), 
         std::ref(words_mutex));
 
-    //START and PLAY
+    //START
     sf::Text greeting_text(def_font, "Press Enter to play", 32);
     greeting_text.setOrigin(greeting_text.getLocalBounds().getCenter());
     greeting_text.setPosition({ window.getSize().x / 2.f, window.getSize().y / 2.f });
@@ -184,6 +193,8 @@ int main()
 
     std::vector<sf::Text> scores = util::getScores(def_font);
 
+    bool shortcut_pressed = false;
+
     while (window.isOpen())
     {
         while (const std::optional event = window.pollEvent())
@@ -202,14 +213,14 @@ int main()
                 switch (game_info.state)
                 {
                 case START:
-                    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter))
+                    if (isKeyPressed(Key::Enter))
                         game_info.state = PLAY;
-                    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Tab))
+                    else if (isKeyPressed(Key::Tab))
                         game_info.state = PAUSE;
                 break;
 
                 case PAUSE:
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter))
+                    if(isKeyPressed(Key::Enter))
                     {
                         game_info.state = PLAY;
                         action_text.setString("");
@@ -250,9 +261,48 @@ int main()
                         else if (textEntered->unicode == 8)
                             (*input_word)--;
                     }
-                    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Tab))
-                        game_info.state = PAUSE;
+                    if (isKeyPressed(Key::Tab))
+                        game_info.state = PAUSE;    
+                    else if (isKeyPressed(Key::LControl) && !shortcut_pressed) // shortcuts
+                    {
+                        shortcut_pressed = true;
+                        float speed = std::stof((*settings)["base_speed"]);
+                        unsigned int char_size = std::stoi((*settings)["base_word_char_size"]);
+                        
+                        bool g_speed = speed > 0.f;
+                        bool g_size = char_size > 4;
 
+                        if (isKeyPressed(Key::Right) && g_speed)
+                        {
+                            config.incrementSetting("base_speed", 1.f);
+                            util::speedUpWords(words, 1.f);
+                        }
+                        else if (isKeyPressed(Key::Left) && g_speed)
+                        {
+                            config.incrementSetting("base_speed", -1.f);
+                            util::speedUpWords(words, -1.f);
+                        }
+                        else if (isKeyPressed(Key::Up) && g_size)
+                        {
+                            config.incrementSetting("base_word_char_size", 2);
+                            util::speedUpWords(words, 2);
+                        }
+                        else if (isKeyPressed(Key::Down) && g_size)
+                        {
+                            config.incrementSetting("base_word_char_size", 2);
+                            util::speedUpWords(words, -2);
+                        }
+                        else if (isKeyPressed(Key::C))
+                            config.switchSetting("random_words_colors");
+                        else if (isKeyPressed(Key::F))
+                            config.switchSetting("random_words_fonts");
+                        else if (isKeyPressed(Key::S))
+                            config.switchSetting("random_word_char_size");
+                        else if (isKeyPressed(Key::P))
+                            config.switchSetting("random_base_speed");
+
+                        else shortcut_pressed = false;
+                    }
                     words_mutex.lock();
                     for (auto& word : words)
                     {
@@ -265,7 +315,7 @@ int main()
                 break;
 
                 case DEFEAT:
-                    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter)) // restarting game
+                    if (isKeyPressed(Key::Enter)) // restarting game
                     {
                         words.clear();
                         game_info.score = 0;
@@ -281,21 +331,23 @@ int main()
                         }
                         words_mutex.unlock();
                     }
-                    else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Tab))
+                    else if(isKeyPressed(Key::Tab))
                         game_info.state = PAUSE;
-                    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) && !score_write)
+                    else if (isKeyPressed(Key::S) && !score_write)
                     {
                         util::writeScore(game_info.score);
                         scores = util::getScores(def_font);
                         score_write = true;
                     }
                     else if(const auto* e = event->getIf<sf::Event::KeyReleased>())
-                        if(e->code == sf::Keyboard::Key::S)
+                        if(e->code == Key::S)
                             score_write = false;
                 break;
                 }
             }
         }
+
+        shortcut_pressed = false;
         
         window.clear();
         switch(game_info.state)
@@ -314,6 +366,7 @@ int main()
                     window.draw(*word);
                 words_mutex.unlock();
 
+                window.draw(input_bg);
                 window.draw(input_word->getText());
                 window.draw(input_word_mask.getText());
                 window.draw(score_word.getText());
