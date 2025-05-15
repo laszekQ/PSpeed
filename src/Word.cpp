@@ -8,11 +8,6 @@ Word::Word(const std::string& str, const sf::Font& font, unsigned int char_size,
 	this->speed = speed;
 }
 
-void Word::setText(std::string str)
-{
-	text.setString(str);
-}
-
 sf::Text Word::getText() const
 {
 	return text;
@@ -37,6 +32,11 @@ void Word::moveRight()
 std::string Word::getString() const
 {
 	return text.getString();
+}
+
+void Word::setString(std::string str)
+{
+	text.setString(str);
 }
 
 sf::Font Word::getFont() const

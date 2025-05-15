@@ -8,9 +8,8 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <cmath>
 #include <ctime>
-
-#include <iostream>
 
 namespace util{
     struct record
@@ -32,10 +31,12 @@ namespace util{
 
     inline void writeScore(int score)
     {
-        try{
         std::vector<record> records;
         std::ifstream fin("scores.txt"); //structure: {date}\t{score}\n
         
+        if(!fin.is_open())
+            return;
+
         while(!fin.eof())
         {
             std::string date;
@@ -63,30 +64,25 @@ namespace util{
         for(record &r : records)
             fout << r.date << '\t' << r.score << '\n';
         fout.close();
-
-        } catch(const std::exception &e) {throw e;}
     }
 
     inline std::vector<record> readScore()
     {
         std::vector<record> records;
-        try{
-            records.reserve(10);
+        records.reserve(10);
 
-            std::ifstream fin("scores.txt");
+        std::ifstream fin("scores.txt");
 
-            for(int i = 0; i < 10 && !fin.eof(); i++)
-            {
-                std::string date;
-                int score;
-                fin >> date >> score;
-                if(date == "")
-                    continue;
-                records.push_back(record(date, score));
-            }
-            fin.close();
-
-        }catch(const std::exception &e) {throw e;}
+        for(int i = 0; i < 10 && !fin.eof(); i++)
+        {
+            std::string date;
+            int score;
+            fin >> date >> score;
+            if(date == "")
+                continue;
+            records.push_back(record(date, score));
+        }
+        fin.close();
 
         return records;
     }
@@ -109,12 +105,12 @@ namespace util{
         return scores;
     }
 
-    inline bool saveGame(std::string file, std::vector< std::shared_ptr<Word> > &words, std::shared_ptr<Word> &input_word, int score)
+    inline bool saveGame(std::string file, std::vector< std::unique_ptr<Word> > &words, Word &input_word, int score)
     {
         try{
             std::ofstream fout(file);
             
-            std::string s = input_word->getString() == "" ? "_" : input_word->getString();
+            std::string s = input_word.getString() == "" ? "_" : input_word.getString();
 
             fout << s << ' ' << score << ' ' << words.size() << '\n';
 
@@ -130,46 +126,47 @@ namespace util{
         return true;
     }
 
-    inline bool loadGame(std::string file, Configurator &config, std::vector< std::shared_ptr<Word> > &words, std::shared_ptr<Word> &input_word, int &score)
+    inline bool loadGame(std::string file, Configurator &config, std::vector< std::unique_ptr<Word> > &words, Word &input_word, int &score)
     {
-        try{
-            std::ifstream fin(file);
+        std::ifstream fin(file);
 
-            std::string str = "";
-            fin >> str;
-            if(str == "_")
-                str = "";
-            input_word->setText(str);
-            fin >> score;
+        if(!fin.is_open())
+            return false;
 
-            int k = 0;
-            fin >> k;
+        std::string str = "";
+        fin >> str;
+        if(str == "_")
+            str = "";
+        input_word.setString(str);
+        fin >> score;
 
-            words.clear();
-            for(int i = 0; i < k; i++)
-            {
-                std::string s;
-                unsigned int color, char_size;
-                float x, y, speed;
-                sf::Font& font = config.getFont();
+        int k = 0;
+        fin >> k;
 
-                fin >> s >> color >> char_size >> x >> y >> speed;
+        words.clear();
+        for(int i = 0; i < k; i++)
+        {
+            std::string s;
+            unsigned int color, char_size;
+            float x, y, speed;
+            sf::Font& font = config.getFont();
 
-                words.push_back(std::make_shared<Word>(s, font, char_size, sf::Color(color), speed));
-                words[i]->setPosition(x, y);
-            }
-            fin.close();
-        }catch(const std::exception &e) {return false;}
+            fin >> s >> color >> char_size >> x >> y >> speed;
+
+            words.push_back(std::make_unique<Word>(s, font, char_size, sf::Color(color), speed));
+            words[i]->setPosition(x, y);
+        }
+        fin.close();
         return true;
     }
 
-    inline void speedUpWords(std::vector< std::shared_ptr<Word> > &words, float speed)
+    inline void speedUpWords(std::vector< std::unique_ptr<Word> > &words, float speed)
     {
         for(auto &word : words)
             word->speedChange(speed);
     }
     
-    inline void enlargeWords(std::vector< std::shared_ptr<Word> > &words, int size)
+    inline void enlargeWords(std::vector< std::unique_ptr<Word> > &words, int size)
     {
         for(auto &word : words)
             word->sizeChange(size);
@@ -182,6 +179,12 @@ namespace util{
             b = std::rand() % 256;
 
         return sf::Color(r, g, b);
+    }
+
+    inline int rand(int l, int r)
+    {
+        int out = std::rand() % (r - l) + 1 + l;
+        return out;
     }
 }
 #endif

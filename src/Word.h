@@ -13,7 +13,6 @@ class Word : public sf::Drawable
 public:
 	Word(const std::string& str, const sf::Font& font, unsigned int char_size, const sf::Color& color, float speed);
 
-	void setText(std::string str);
 	sf::Text getText() const;
 
 	sf::Vector2f getPosition() const;
@@ -21,6 +20,7 @@ public:
 	void moveRight();
 
 	std::string getString() const;
+	void setString(std::string str);
 
 	sf::Font getFont() const;
 	void setFont(sf::Font font);

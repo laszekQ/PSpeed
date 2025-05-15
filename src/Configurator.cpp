@@ -52,6 +52,14 @@ bool Configurator::setConfiguration()
 	}
 	catch (std::string exc) { return false; }
 
+	sf::Font temp_def_font(settings["fonts_path"] + settings["default_words_font"]);
+	if(fonts[0].getInfo().family != temp_def_font.getInfo().family)
+		for(int i = 0; i < fonts.size(); i++)
+			if(fonts[i].getInfo().family == temp_def_font.getInfo().family)
+			{
+				std::swap(fonts[0], fonts[i]);
+				break;
+			}
 	return true;
 }
 
@@ -60,12 +68,12 @@ settings_map * Configurator::getConfiguration()
 	return &settings;
 }
 
-std::shared_ptr<Word> Configurator::genWord()
+std::unique_ptr<Word> Configurator::genWord()
 {
 	int range = words_from_file.size() * std::stod(settings["dispersion"]);
-	std::string str = words_from_file[rand() % range];
+	std::string str = words_from_file[util::rand(0, range)];
 	
-	sf::Font & font = getFont(); //TODO: make default_font always be first in the vector
+	sf::Font & font = getFont();
 
 	unsigned int char_size = 18;
 	if (settings["random_word_char_size"] == "1")
@@ -95,7 +103,7 @@ std::shared_ptr<Word> Configurator::genWord()
 	else
 		speed = std::stof(settings["base_speed"]);
 
-	std::shared_ptr<Word> word = std::make_shared<Word>(str, font, char_size, color, speed);
+	std::unique_ptr<Word> word = std::make_unique<Word>(str, font, char_size, color, speed);
 	return word;
 }
 

@@ -7,8 +7,6 @@
 #include <SFML/Graphics.hpp>
 #include "Word.h"
 
-#include <iostream>
-
 using settings_map = std::unordered_map<std::string, std::string>;
 
 class Configurator 
@@ -26,7 +24,7 @@ class Configurator
 	bool setConfiguration();
 	settings_map * getConfiguration();
 	std::vector<std::string> getWords();
-	std::shared_ptr<Word> genWord();
+	std::unique_ptr<Word> genWord();
 	sf::Font& getFont();
 	std::pair<float, float> genPos(int width, int height);
 
