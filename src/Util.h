@@ -22,6 +22,11 @@ namespace util{
             date = str;
             score = sc;
         }
+
+        bool operator== (const record& o) const
+        {
+            return (date == o.date && score == o.score);
+        }
     };
 
     inline bool recordComp(record r1, record r2)
@@ -57,6 +62,8 @@ namespace util{
         std::string day = std::to_string(now->tm_mday);
         std::string date = year + '-' + month + '-' + day;
 
+        if(std::find(records.begin(), records.end(), record(date, score)) != records.end())
+            return;
         records.push_back(record(date, score));
         std::sort(records.begin(), records.end(), recordComp);
         

@@ -23,8 +23,9 @@ enum STATE {
 struct gameinfo
 {
     int score;
+    short k_missed;
     STATE state;
-    bool running = true;
+    bool running;
 };
 
 void performLogic(  std::vector< std::unique_ptr<Word> > &words,
@@ -36,14 +37,13 @@ void performLogic(  std::vector< std::unique_ptr<Word> > &words,
     settings_map * settings = config.getConfiguration();
     const float degrees = std::stof((*settings)["degrees"]);
     const int allowed_misses = std::stoi((*settings)["allowed_missed_words"]);
-    int k_missed = 0;
     int sleeptime = std::stoi((*settings)["sleeptime"]);
 
     while (game_info.running)
     {
         if (game_info.state == DEFEAT || game_info.state == START)
         {
-            k_missed = 0;
+            game_info.k_missed = 0;
             continue;
         }
         else if (game_info.state == PAUSE)
@@ -55,7 +55,7 @@ void performLogic(  std::vector< std::unique_ptr<Word> > &words,
         {
             if ((**p).getPosition().x > 1000)
             {
-                k_missed++;
+                game_info.k_missed++;
                 p = words.erase(p);
                 continue;
             }
@@ -80,7 +80,7 @@ void performLogic(  std::vector< std::unique_ptr<Word> > &words,
         {
             input_word.setString("");
             int max_n = std::stoi((*settings)["words_added_per_erase_maximum"]);
-            int n = util::rand(k_missed, max_n);
+            int n = util::rand(game_info.k_missed, max_n);
             for (int i = 0; i < n; i++)
             {
                 words.push_back(config.genWord());
@@ -91,9 +91,9 @@ void performLogic(  std::vector< std::unique_ptr<Word> > &words,
             for (auto& word : words)
                 word->accelerate(std::stof((*settings)["speed_multiplier"]));
 
-            k_missed = 0;
+            game_info.k_missed = 0;
         }
-        else if (k_missed > 3 || words.size() == 0)
+        else if (game_info.k_missed > 3 || words.size() == 0)
         {
             game_info.state = DEFEAT;
             util::writeScore(game_info.score);
@@ -122,7 +122,7 @@ int main()
 
     sf::RenderWindow window(sf::VideoMode({WIDTH, HEIGHT}), "PSpeed");
     window.setFramerateLimit(25);
-    gameinfo game_info(0, START);
+    gameinfo game_info(0, 0, START, true);
 
     sf::Font def_font;
     std::string def_font_path = (*settings)["fonts_path"] + (*settings)["default_words_font"];
@@ -141,6 +141,10 @@ int main()
 
     Word score_word("", def_font, 18, sf::Color::White, 0.f);
     score_word.setPosition(WIDTH / 10, 5.5 * HEIGHT / 6);
+
+    sf::Text missed_text(def_font, "", 18);
+    missed_text.setPosition({WIDTH / 10.f + 62, 5.5f * HEIGHT / 6});
+    missed_text.setFillColor(sf::Color::Red);
 
     sf::RectangleShape input_bg({(float)WIDTH, (float)HEIGHT});
     input_bg.setFillColor(sf::Color(0, 0, 102, 255));
@@ -215,6 +219,7 @@ int main()
     std::vector<sf::Text> scores = util::getScores(def_font);
 
     bool shortcut_pressed = false;
+    bool restart = false;
 
     while (window.isOpen())
     {
@@ -230,62 +235,91 @@ int main()
             }
             else
             {
+                const auto& keyEvent = event->getIf<sf::Event::KeyPressed>();
+                const auto& mouseEvent = event->getIf<sf::Event::MouseButtonPressed>();
+                const auto& textEvent = event->getIf<sf::Event::TextEntered>();
+
                 switch (game_info.state)
                 {
                 case START:
-                    if (isKeyPressed(Key::Enter))
-                        game_info.state = PLAY;
-                    else if (isKeyPressed(Key::Tab))
-                        game_info.state = PAUSE;
+                    if(event->is<sf::Event::KeyPressed>())
+                    {
+                        if (keyEvent->code == Key::Enter)
+                            game_info.state = PLAY;
+                        else if (keyEvent->code == Key::Tab)
+                            game_info.state = PAUSE;
+                    }
                 break;
 
                 case PAUSE:
-                    if(isKeyPressed(Key::Enter))
+                    if(event->is<sf::Event::KeyPressed>())
                     {
-                        game_info.state = PLAY;
-                        action_text.setString("");
+                        if(keyEvent->code == Key::Enter)
+                        {
+                            if(restart)
+                            {
+                                words.clear();
+                                game_info.score = 0;
+                                input_word.setString("");
+
+                                words_mutex.lock();
+                                for (int i = 0; i < words_count; i++)
+                                {
+                                    words.push_back(config.genWord());
+                                    std::pair<int, int> pos = config.genPos(window.getSize().x, window.getSize().y);
+                                    words[words.size() - 1]->setPosition(pos.first, pos.second);
+                                }
+                                words_mutex.unlock();
+                                restart = false;
+                            }
+                            else
+                            {
+                                game_info.state = PLAY;
+                                action_text.setString("");
+                            }
+                        }
                     }
-                    else if (const auto* textEntered = event->getIf<sf::Event::TextEntered>())
+                    else if (event->is<sf::Event::TextEntered>())
                     {
-                        if (textEntered->unicode > 40 && textEntered->unicode < 123)
-                            filename_so += (char)textEntered->unicode;
-                        else if (textEntered->unicode == 8)
+                        if (textEvent->unicode > 40 && textEvent->unicode < 123)
+                            filename_so += (char)textEvent->unicode;
+                        else if (textEvent->unicode == 8)
                             filename_so--;
                     }
-                    else if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
+                    else if(event->is<sf::Event::MouseButtonPressed>())
                     {
-                        words_mutex.lock();
-                        if(save_button.clicked(window))
+                        if(mouseEvent->button == sf::Mouse::Button::Left)
                         {
-                            if(util::saveGame(filename_so.getString(), words, input_word, game_info.score))
-                                action_text.setString("Saved file!");
-                            else
-                                action_text.setString("Failed to save file.");
+                            words_mutex.lock();
+                            if(save_button.clicked(window))
+                            {
+                                if(util::saveGame(filename_so.getString(), words, input_word, game_info.score))
+                                    action_text.setString("Saved file!");
+                                else
+                                    action_text.setString("Failed to save file.");
+                            }
+                            else if(open_button.clicked(window))
+                            {
+                                if(util::loadGame(filename_so.getString(), config, words, input_word, game_info.score))
+                                    action_text.setString("Opened file!");
+                                else
+                                    action_text.setString("Failed to open file.");
+                            }
+                            words_mutex.unlock();
                         }
-                        else if(open_button.clicked(window))
-                        {
-                            if(util::loadGame(filename_so.getString(), config, words, input_word, game_info.score))
-                                action_text.setString("Opened file!");
-                            else
-                                action_text.setString("Failed to open file.");
-                        }
-                        words_mutex.unlock();
                     }
                 break;
 
                 case PLAY:
                     if (event->is<sf::Event::TextEntered>())
                     {
-                        const auto& textEntered = event->getIf<sf::Event::TextEntered>();
-                        if (textEntered->unicode > 40 && textEntered->unicode < 123)
-                            input_word += (char)textEntered->unicode;
-                        else if (textEntered->unicode == 8)
+                        if (textEvent->unicode > 40 && textEvent->unicode < 123)
+                            input_word += (char)textEvent->unicode;
+                        else if (textEvent->unicode == 8)
                             input_word--;
                     }
                     else if(event->is<sf::Event::KeyPressed>())
                     {
-                        const auto& keyEvent = event->getIf<sf::Event::KeyPressed>();
-
                         if (keyEvent->code == Key::Tab)
                             game_info.state = PAUSE;    
                         else if (keyEvent->control && !shortcut_pressed) // if Ctrl is pressed
@@ -360,33 +394,42 @@ int main()
                 break;
 
                 case DEFEAT:
-                    if (isKeyPressed(Key::Enter)) // restarting game
+                    if(event->is<sf::Event::KeyPressed>())
                     {
-                        words.clear();
-                        game_info.score = 0;
-                        game_info.state = PLAY;
-                        input_word.setString("");
-
-                        words_mutex.lock();
-                        for (int i = 0; i < words_count; i++)
+                        switch(keyEvent->code)
                         {
-                            words.push_back(config.genWord());
-                            std::pair<int, int> pos = config.genPos(window.getSize().x, window.getSize().y);
-                            words[words.size() - 1]->setPosition(pos.first, pos.second);
+                            case Key::Enter: // restarting game
+                                words.clear();
+                                game_info.score = 0;
+                                game_info.state = PLAY;
+                                input_word.setString("");
+
+                                words_mutex.lock();
+                                for (int i = 0; i < words_count; i++)
+                                {
+                                    words.push_back(config.genWord());
+                                    std::pair<int, int> pos = config.genPos(window.getSize().x, window.getSize().y);
+                                    words[words.size() - 1]->setPosition(pos.first, pos.second);
+                                }
+                                words_mutex.unlock();
+                                break;
+                            case Key::Tab:
+                                game_info.state = PAUSE;
+                                restart = true;
+                                break;
+                            case Key::S:
+                                if(!score_write)
+                                {
+                                    score_write = true;
+                                    util::writeScore(game_info.score);
+                                    scores = util::getScores(def_font);
+                                }
+                                break;
+                            default:
+                                score_write = false;
+                                break;
                         }
-                        words_mutex.unlock();
                     }
-                    else if(isKeyPressed(Key::Tab))
-                        game_info.state = PAUSE;
-                    else if (isKeyPressed(Key::S) && !score_write)
-                    {
-                        util::writeScore(game_info.score);
-                        scores = util::getScores(def_font);
-                        score_write = true;
-                    }
-                    else if(const auto* e = event->getIf<sf::Event::KeyReleased>())
-                        if(e->code == Key::S)
-                            score_write = false;
                 break;
                 }
             }
@@ -404,6 +447,7 @@ int main()
 
             case PLAY:
                 score_word.setString(std::to_string(game_info.score));
+                missed_text.setString("Missed: " + std::to_string(game_info.k_missed));
                 if(input_word.getString() == "")
                         input_word_mask.setString("");
 
@@ -413,9 +457,10 @@ int main()
                 words_mutex.unlock();
 
                 window.draw(input_bg);
-                window.draw(input_word.getText());
-                window.draw(input_word_mask.getText());
-                window.draw(score_word.getText());
+                window.draw(input_word);
+                window.draw(input_word_mask);
+                window.draw(score_word);
+                window.draw(missed_text);
             break;
 
             case DEFEAT:
