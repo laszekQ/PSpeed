@@ -2,7 +2,7 @@
 ## What is it
 Monkeytyper similiar to the [WSpeed](https://youtu.be/acFO5yQxb6Y) program. Essencially, a monkeytyper where words move from one side of the screen to the other and the user has to type the appearing words to make them disappear. If the user fails to type several words in a row, he loses.
 
-Initially a student project for the C++ course in PJATK.
+Initially a student project for the C++ course in the university.
 <br>
 ### Screenshots
 ![gameplay](./assets/readme_assets/mainscr.png)
