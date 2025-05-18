@@ -12,6 +12,8 @@
 #include <chrono>
 #include <mutex>
 
+#include <iostream>
+
 using settings_map = std::unordered_map<std::string, std::string>;
 using sf::Keyboard::Key;
 using namespace sf::Keyboard;
@@ -26,6 +28,7 @@ struct gameinfo
     short k_missed;
     STATE state;
     bool running;
+    unsigned int border;
 };
 
 void performLogic(  std::vector< std::unique_ptr<Word> > &words,
@@ -53,7 +56,7 @@ void performLogic(  std::vector< std::unique_ptr<Word> > &words,
         bool erased_any = false;
         for (auto p = words.begin(); p != words.end();)
         {
-            if ((**p).getPosition().x > 1000)
+            if ((**p).getPosition().x > game_info.border)
             {
                 game_info.k_missed++;
                 p = words.erase(p);
@@ -122,7 +125,7 @@ int main()
 
     sf::RenderWindow window(sf::VideoMode({WIDTH, HEIGHT}), "PSpeed");
     window.setFramerateLimit(25);
-    gameinfo game_info(0, 0, START, true);
+    gameinfo game_info(0, 0, START, true, WIDTH);
 
     sf::Font def_font;
     std::string def_font_path = (*settings)["fonts_path"] + (*settings)["default_words_font"];
@@ -399,12 +402,13 @@ int main()
                         switch(keyEvent->code)
                         {
                             case Key::Enter: // restarting game
+                                game_info.state = PLAY;
+                                words_mutex.lock();
                                 words.clear();
                                 game_info.score = 0;
                                 game_info.state = PLAY;
                                 input_word.setString("");
 
-                                words_mutex.lock();
                                 for (int i = 0; i < words_count; i++)
                                 {
                                     words.push_back(config.genWord());
