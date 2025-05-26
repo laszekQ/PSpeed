@@ -84,12 +84,14 @@ void performLogic(  std::vector< std::unique_ptr<Word> > &words,
             input_word.setString("");
             int max_n = std::stoi((*settings)["words_added_per_erase_maximum"]);
             int n = util::rand(game_info.k_missed, max_n);
+            words_mutex.lock();
             for (int i = 0; i < n; i++)
             {
                 words.push_back(config.genWord());
                 std::pair<float, float> pos = config.genPos(900, 500);
                 words[words.size() - 1]->setPosition(pos.first, pos.second);
             }
+            words_mutex.unlock();
 
             for (auto& word : words)
                 word->accelerate(std::stof((*settings)["speed_multiplier"]));
