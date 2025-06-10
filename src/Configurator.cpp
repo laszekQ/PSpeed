@@ -68,7 +68,7 @@ settings_map * Configurator::getConfiguration()
 	return &settings;
 }
 
-std::unique_ptr<Word> Configurator::genWord()
+std::shared_ptr<Word> Configurator::genWord()
 {
 	int range = words_from_file.size() * std::stod(settings["dispersion"]);
 	std::string str = words_from_file[util::rand(0, range)];
@@ -103,7 +103,7 @@ std::unique_ptr<Word> Configurator::genWord()
 	else
 		speed = std::stof(settings["base_speed"]);
 
-	std::unique_ptr<Word> word = std::make_unique<Word>(str, font, char_size, color, speed);
+	std::shared_ptr<Word> word = std::make_shared<Word>(str, font, char_size, color, speed);
 	return word;
 }
 

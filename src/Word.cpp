@@ -44,7 +44,7 @@ sf::Font Word::getFont() const
 	return text.getFont();
 }
 
-void Word::setFont(sf::Font font)
+void Word::setFont(sf::Font &font)
 {
 	text.setFont(font);
 }

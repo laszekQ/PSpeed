@@ -24,7 +24,7 @@ class Configurator
 	bool setConfiguration();
 	settings_map * getConfiguration();
 	std::vector<std::string> getWords();
-	std::unique_ptr<Word> genWord();
+	std::shared_ptr<Word> genWord();
 	sf::Font& getFont();
 	std::pair<float, float> genPos(int width, int height);
 

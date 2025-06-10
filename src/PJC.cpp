@@ -12,8 +12,6 @@
 #include <chrono>
 #include <mutex>
 
-#include <iostream>
-
 using settings_map = std::unordered_map<std::string, std::string>;
 using sf::Keyboard::Key;
 using namespace sf::Keyboard;
@@ -31,7 +29,7 @@ struct gameinfo
     unsigned int border;
 };
 
-void performLogic(  std::vector< std::unique_ptr<Word> > &words,
+void performLogic(  std::vector< std::shared_ptr<Word> > &words,
                     Word &input_word,
                     gameinfo &game_info,
                     Configurator &config, 
@@ -53,7 +51,7 @@ void performLogic(  std::vector< std::unique_ptr<Word> > &words,
             continue;
 
         words_mutex.lock();
-        bool erased_any = false;
+        bool erased_any = false;    
         for (auto p = words.begin(); p != words.end();)
         {
             if ((**p).getPosition().x > game_info.border)
@@ -134,7 +132,7 @@ int main()
     if (!def_font.openFromFile(def_font_path))
         return -1;
 
-    std::vector< std::unique_ptr<Word> > words;
+    std::vector< std::shared_ptr<Word> > words;
     std::mutex words_mutex;
     
     //PLAY
