@@ -7,6 +7,8 @@
 #include <ctime>
 #include <cstdlib>
 #include <filesystem>
+#include <iostream>
+#include <algorithm>
 
 using settings_map = std::unordered_map<std::string, std::string>;
 
@@ -33,7 +35,11 @@ bool Configurator::setConfiguration()
 		}
 		fin.close();
 	}
-	catch (std::string exc) { return false; }
+	catch (const char* exc) 
+	{
+		std::cout << exc << std::endl; 
+		return false; 
+	}
 
 	words_file_path = settings["words_file"];
 	words_from_file = this->getWords();
@@ -50,7 +56,11 @@ bool Configurator::setConfiguration()
 			}
 		}
 	}
-	catch (std::string exc) { return false; }
+	catch (const char* exc)
+	{
+		std::cout << exc << std::endl; 
+		return false;
+	}
 
 	sf::Font temp_def_font(settings["fonts_path"] + settings["default_words_font"]);
 	if(fonts[0].getInfo().family != temp_def_font.getInfo().family)
@@ -70,8 +80,10 @@ settings_map * Configurator::getConfiguration()
 
 std::shared_ptr<Word> Configurator::genWord()
 {
-	int range = words_from_file.size() * std::stod(settings["dispersion"]);
-	std::string str = words_from_file[util::rand(0, range)];
+	int words_number = words_from_file.size();
+	int range = words_number * std::stod(settings["dispersion"]);
+	int r_index = util::rand(0, range);
+	std::string str = words_from_file[std::clamp(r_index, 0, words_number - 1)];
 	
 	sf::Font & font = getFont();
 

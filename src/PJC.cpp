@@ -5,6 +5,7 @@
 #include "Button.h"
 #include <string>
 #include <unordered_map>
+#include <iostream>
 #include <ctime>
 #include <cstdlib>
 #include <thread>
@@ -157,7 +158,8 @@ int main()
     int words_count = std::stoi((*settings)["starting_words_count"]);
     for (int i = 0; i < words_count; i++)
     {
-        words.push_back(config.genWord());
+        std::shared_ptr<Word> new_word = config.genWord();
+        words.push_back(new_word);
         std::pair<float, float> pos = config.genPos(window.getSize().x, window.getSize().y);
         words[i]->setPosition(pos.first, pos.second);
     }
