@@ -51,14 +51,15 @@ void performLogic(  std::vector< std::shared_ptr<Word> > &words,
         else if (game_info.state == PAUSE)
             continue;
 
-        words_mutex.lock();
         bool erased_any = false;    
         for (auto p = words.begin(); p != words.end();)
         {
             if ((**p).getPosition().x > game_info.border)
             {
                 game_info.k_missed++;
+                words_mutex.lock();
                 p = words.erase(p);
+                words_mutex.unlock();
                 continue;
             }
 
@@ -70,13 +71,14 @@ void performLogic(  std::vector< std::shared_ptr<Word> > &words,
                 float sleeptime_factor = 40.f / sleeptime;
 
                 game_info.score += (word_length * speed + rotation_bonus) * sleeptime_factor;
+                words_mutex.lock();
                 p = words.erase(p);
+                words_mutex.unlock();
                 erased_any = true;
             }
             else
                 p++;
         }
-        words_mutex.unlock();
 
         if (erased_any)
         {
@@ -90,10 +92,10 @@ void performLogic(  std::vector< std::shared_ptr<Word> > &words,
                 std::pair<float, float> pos = config.genPos(900, 500);
                 words[words.size() - 1]->setPosition(pos.first, pos.second);
             }
-            words_mutex.unlock();
 
             for (auto& word : words)
                 word->accelerate(std::stof((*settings)["speed_multiplier"]));
+            words_mutex.unlock();
 
             game_info.k_missed = 0;
         }
@@ -104,9 +106,11 @@ void performLogic(  std::vector< std::shared_ptr<Word> > &words,
         }
         for (auto& word : words)
         {
+            words_mutex.lock();
             word->moveRight();
             if((*settings)["word_rotation"] == "1")
                 word->rotate(degrees);
+            words_mutex.unlock();
         }
 
         sleeptime = std::stoi((*settings)["sleeptime"]);
