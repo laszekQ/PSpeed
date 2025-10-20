@@ -1,8 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include "Button.h"
 
-#include <iostream>
-
 Button::Button(float x, float y, sf::Text text, sf::RectangleShape rect) : text{text}
 {
     this->x = x;

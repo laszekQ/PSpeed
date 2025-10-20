@@ -5,13 +5,13 @@
 #include "Button.h"
 #include <string>
 #include <unordered_map>
-#include <iostream>
 #include <ctime>
 #include <cstdlib>
 #include <thread>
 #include <vector>
 #include <chrono>
 #include <mutex>
+#include <cmath>
 
 using settings_map = std::unordered_map<std::string, std::string>;
 using sf::Keyboard::Key;
@@ -52,14 +52,13 @@ void performLogic(  std::vector< std::shared_ptr<Word> > &words,
             continue;
 
         bool erased_any = false;    
+        words_mutex.lock();
         for (auto p = words.begin(); p != words.end();)
         {
             if ((**p).getPosition().x > game_info.border)
             {
                 game_info.k_missed++;
-                words_mutex.lock();
                 p = words.erase(p);
-                words_mutex.unlock();
                 continue;
             }
 
@@ -71,9 +70,7 @@ void performLogic(  std::vector< std::shared_ptr<Word> > &words,
                 float sleeptime_factor = 40.f / sleeptime;
 
                 game_info.score += (word_length * speed + rotation_bonus) * sleeptime_factor;
-                words_mutex.lock();
                 p = words.erase(p);
-                words_mutex.unlock();
                 erased_any = true;
             }
             else
@@ -85,7 +82,6 @@ void performLogic(  std::vector< std::shared_ptr<Word> > &words,
             input_word.setString("");
             int max_n = std::stoi((*settings)["words_added_per_erase_maximum"]);
             int n = util::rand(game_info.k_missed, max_n);
-            words_mutex.lock();
             for (int i = 0; i < n; i++)
             {
                 words.push_back(config.genWord());
@@ -95,7 +91,6 @@ void performLogic(  std::vector< std::shared_ptr<Word> > &words,
 
             for (auto& word : words)
                 word->accelerate(std::stof((*settings)["speed_multiplier"]));
-            words_mutex.unlock();
 
             game_info.k_missed = 0;
         }
@@ -106,12 +101,11 @@ void performLogic(  std::vector< std::shared_ptr<Word> > &words,
         }
         for (auto& word : words)
         {
-            words_mutex.lock();
             word->moveRight();
             if((*settings)["word_rotation"] == "1")
                 word->rotate(degrees);
-            words_mutex.unlock();
         }
+        words_mutex.unlock();
 
         sleeptime = std::stoi((*settings)["sleeptime"]);
         std::this_thread::sleep_for(std::chrono::milliseconds(sleeptime));
@@ -142,13 +136,13 @@ int main()
     
     //PLAY
     Word input_word("", def_font, 28, sf::Color::White, 0.f);
-    input_word.setPosition(WIDTH / 10, 5 * HEIGHT / 6);
+    input_word.setPosition(WIDTH / 10.f, 5.f * HEIGHT / 6);
 
     Word input_word_mask("", def_font, 28, sf::Color::Green, 0.f);
-    input_word_mask.setPosition(WIDTH / 10, 5 * HEIGHT / 6);
+    input_word_mask.setPosition(WIDTH / 10.f, 5.f * HEIGHT / 6);
 
     Word score_word("", def_font, 18, sf::Color::White, 0.f);
-    score_word.setPosition(WIDTH / 10, 5.5 * HEIGHT / 6);
+    score_word.setPosition(WIDTH / 10.f, 5.5f * HEIGHT / 6);
 
     sf::Text missed_text(def_font, "", 18);
     missed_text.setPosition({WIDTH / 10.f + 62, 5.5f * HEIGHT / 6});
@@ -267,11 +261,11 @@ int main()
                         {
                             if(restart)
                             {
+                                words_mutex.lock();
                                 words.clear();
                                 game_info.score = 0;
                                 input_word.setString("");
 
-                                words_mutex.lock();
                                 for (int i = 0; i < words_count; i++)
                                 {
                                     words.push_back(config.genWord());
@@ -367,9 +361,13 @@ int main()
                                     break;
                                 case Key::A:
                                     config.incrementSetting("sleeptime", -5);
+                                    if(std::stof((*settings)["sleeptime"]) == 0.0f)
+                                        config.changeSetting("sleeptime", 0.1f);
                                     break;
                                 case Key::D:
                                     config.incrementSetting("sleeptime", 5);
+                                    if(std::stof((*settings)["sleeptime"]) == 0.0f)
+                                        config.changeSetting("sleeptime", 0.1f);
                                     break;
                                 case Key::C:
                                     config.switchSetting("random_words_colors");
@@ -408,7 +406,6 @@ int main()
                         switch(keyEvent->code)
                         {
                             case Key::Enter: // restarting game
-                                game_info.state = PLAY;
                                 words_mutex.lock();
                                 words.clear();
                                 game_info.score = 0;

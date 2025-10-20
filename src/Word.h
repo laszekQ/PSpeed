@@ -22,7 +22,7 @@ public:
 	std::string getString() const;
 	void setString(std::string str);
 
-	sf::Font getFont() const;
+	const sf::Font& getFont() const;
 	void setFont(sf::Font &font);
 
 	int getSize();

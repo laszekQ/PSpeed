@@ -11,3 +11,6 @@ Makefile
 #Misc
 requirements.txt
 *.dll
+.clangd
+PSpeed
+scores.txt

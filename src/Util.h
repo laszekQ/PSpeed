@@ -37,6 +37,10 @@ namespace util{
     inline void writeScore(int score)
     {
         std::vector<record> records;
+
+        if(!std::filesystem::exists("scores.txt"))
+            std::ofstream{"scores.txt"};
+
         std::ifstream fin("scores.txt"); //structure: {date}\t{score}\n
         
         if(!fin.is_open())

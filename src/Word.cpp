@@ -39,7 +39,7 @@ void Word::setString(std::string str)
 	text.setString(str);
 }
 
-sf::Font Word::getFont() const
+const sf::Font& Word::getFont() const
 {
 	return text.getFont();
 }
